@@ -1,26 +1,30 @@
 # Dependencies
 node_modules/
 
-# Build
+# Build output
 dist/
 build/
 
-# Environment
+# Environment variables
 .env
+.env.*
+!.env.example
 
 # Logs
 logs/
 *.log
 
-# OS Files
+# OS files
 .DS_Store
 Thumbs.db
 
-# VS Code
+# Editor
 .vscode/
+.idea/
 
-# Database
+# Database / local data
 *.sqlite
+*.sqlite3
 
 # Coverage
 coverage/
