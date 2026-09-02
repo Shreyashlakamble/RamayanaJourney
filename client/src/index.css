@@ -1,6 +1,19 @@
 @import "tailwindcss";
 
 :root {
+  --color-background: #f7f3eb;
+  --color-surface: #fcfaf5;
+  --color-surface-muted: #eee8dc;
+
+  --color-text: #211d18;
+  --color-text-muted: #6f675d;
+
+  --color-primary: #a85422;
+  --color-primary-dark: #7d3e18;
+  --color-primary-soft: #f1dfd1;
+
+  --color-border: #ddd4c6;
+
   font-family:
     Inter,
     ui-sans-serif,
@@ -10,8 +23,9 @@
     "Segoe UI",
     sans-serif;
 
-  color: #1f1f1f;
-  background: #f8f6f1;
+  color: var(--color-text);
+  background: var(--color-background);
+
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -26,15 +40,31 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background: var(--color-background);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 button,
-a {
+input,
+textarea,
+select {
   font: inherit;
 }
 
 button {
   cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
 img {
