@@ -1,0 +1,27 @@
+export type LocationType = 'main' | 'sub'
+
+export interface Location {
+  id: string
+  name: string
+  slug: string
+
+  type: LocationType
+  parentId: string | null
+
+  latitude: number
+  longitude: number
+
+  region: string
+  state?: string
+  country: string
+
+  shortDescription: string
+  description?: string
+
+  heroImage?: string
+
+  timelineOrder?: number
+
+  featured?: boolean
+  active?: boolean
+}

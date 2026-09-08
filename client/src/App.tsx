@@ -1,10 +1,13 @@
-import AppRouter from './routes/AppRouter'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { LocationProvider } from './contexts/LocationContext'
+import AppRouter from './routes/AppRouter'
 
 function App() {
   return (
     <ThemeProvider>
-      <AppRouter />
+      <LocationProvider>
+        <AppRouter />
+      </LocationProvider>
     </ThemeProvider>
   )
 }
