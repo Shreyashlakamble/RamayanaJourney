@@ -1,22 +1,32 @@
 import { ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import OptimizedImage from '../../components/media/OptimizedImage'
+import { IMAGE_PATHS } from '../../config/images'
 
 function HeroSection() {
   return (
     <section
       className="
         relative isolate min-h-screen overflow-hidden
-        bg-[var(--hero-start)]
-        text-[var(--text)]
-        transition-colors duration-500
-        dark:bg-[var(--hero-start)]
-        dark:text-white
+        bg-[#211d18]
+        text-white
       "
     >
+      <div className="absolute inset-0 -z-30">
+        <OptimizedImage
+          src={IMAGE_PATHS.hero.placeholder}
+          alt=""
+          loading="eager"
+          fetchPriority="high"
+          className="h-full w-full object-cover"
+          aria-hidden="true"
+        />
+      </div>
+
       <div
         className="
           absolute inset-0 -z-20
-          bg-[radial-gradient(circle_at_50%_35%,var(--hero-glow),transparent_36%)]
+          bg-black/30
         "
         aria-hidden="true"
       />
@@ -24,10 +34,10 @@ function HeroSection() {
       <div
         className="
           absolute inset-0 -z-10
-          bg-gradient-to-br
-          from-transparent
-          via-transparent
-          to-[var(--hero-end)]
+          bg-gradient-to-b
+          from-black/10
+          via-black/25
+          to-black/80
         "
         aria-hidden="true"
       />
@@ -35,7 +45,7 @@ function HeroSection() {
       <div
         className="
           absolute inset-0 -z-10
-          bg-[radial-gradient(circle_at_20%_55%,rgba(196,147,69,0.08),transparent_28%)]
+          bg-[radial-gradient(circle_at_50%_36%,rgba(233,194,123,0.2),transparent_30%)]
         "
         aria-hidden="true"
       />
@@ -46,8 +56,7 @@ function HeroSection() {
             className="
               mb-6 text-sm font-medium uppercase
               tracking-[0.45em]
-              text-[var(--primary)]
-              dark:text-[var(--accent)]
+              text-[#e9c27b]
             "
           >
             Ramayana Journey
@@ -57,20 +66,13 @@ function HeroSection() {
             className="
               text-balance text-5xl font-semibold
               tracking-[-0.04em]
-              text-[var(--text)]
               sm:text-6xl
               md:text-7xl
               lg:text-8xl
             "
           >
             Journey Through
-            <span
-              className="
-                mt-2 block
-                text-[var(--primary)]
-                dark:text-[var(--accent)]
-              "
-            >
+            <span className="mt-2 block text-[#e9c27b]">
               the Ramayana
             </span>
           </h1>
@@ -79,7 +81,7 @@ function HeroSection() {
             className="
               mx-auto mt-8 max-w-2xl
               text-base leading-7
-              text-[var(--text-muted)]
+              text-white/80
               sm:text-lg sm:leading-8
             "
           >
@@ -92,14 +94,13 @@ function HeroSection() {
               to="/journey"
               className="
                 inline-flex items-center gap-3
-                rounded-full
-                bg-[var(--primary)]
+                rounded-full bg-[#a85422]
                 px-7 py-3.5
                 text-sm font-medium text-white
-                shadow-lg shadow-black/10
+                shadow-lg shadow-black/20
                 transition-all duration-300
                 hover:-translate-y-0.5
-                hover:bg-[var(--primary-dark)]
+                hover:bg-[#7d3e18]
               "
             >
               Explore the Journey
@@ -111,15 +112,14 @@ function HeroSection() {
               className="
                 inline-flex items-center
                 rounded-full
-                border border-[var(--border)]
-                bg-[var(--surface)]/60
+                border border-white/25
+                bg-white/10
                 px-7 py-3.5
-                text-sm font-medium
-                text-[var(--text)]
+                text-sm font-medium text-white
                 backdrop-blur-md
                 transition-all duration-300
                 hover:-translate-y-0.5
-                hover:bg-[var(--surface)]
+                hover:bg-white/15
               "
             >
               Discover Locations
@@ -132,8 +132,7 @@ function HeroSection() {
         className="
           absolute bottom-8 left-1/2
           -translate-x-1/2
-          text-center
-          text-[var(--text-muted)]
+          text-center text-white/70
         "
       >
         <p className="mb-2 text-[10px] uppercase tracking-[0.3em]">
@@ -144,7 +143,7 @@ function HeroSection() {
           className="
             mx-auto h-10 w-px
             bg-gradient-to-b
-            from-[var(--accent)]
+            from-[#e9c27b]
             to-transparent
           "
         />

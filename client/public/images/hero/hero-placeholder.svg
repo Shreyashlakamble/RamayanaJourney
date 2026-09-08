@@ -1,0 +1,48 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 1600 1000"
+  width="1600"
+  height="1000"
+>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#c9b79c"/>
+      <stop offset="45%" stop-color="#7b6247"/>
+      <stop offset="100%" stop-color="#1f2724"/>
+    </linearGradient>
+
+    <radialGradient id="sun" cx="50%" cy="38%" r="30%">
+      <stop offset="0%" stop-color="#f7d89b" stop-opacity=".9"/>
+      <stop offset="100%" stop-color="#f7d89b" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#47554b"/>
+      <stop offset="100%" stop-color="#17201d"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="1000" fill="url(#sky)"/>
+  <rect width="1600" height="1000" fill="url(#sun)"/>
+
+  <path
+    d="M0 590
+       C180 530 300 570 470 515
+       C650 455 790 520 960 475
+       C1150 425 1310 500 1600 430
+       L1600 1000
+       L0 1000 Z"
+    fill="url(#ground)"
+  />
+
+  <path
+    d="M0 690
+       C220 620 350 690 560 640
+       C800 580 980 665 1180 605
+       C1360 550 1470 610 1600 570
+       L1600 1000
+       L0 1000 Z"
+    fill="#121815"
+    opacity=".55"
+  />
+</svg>
