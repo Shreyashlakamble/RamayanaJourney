@@ -33,6 +33,10 @@ function MapController({
 
   useEffect(() => {
     if (!selectedLocation) {
+      map.flyTo([22.8, 79.5], 5, {
+        duration: 1,
+      })
+
       return
     }
 
@@ -204,6 +208,30 @@ function JourneyMap({
         subLocations={selectedSubLocations}
         onClose={onClosePanel}
       />
+      <div
+  className="
+    absolute bottom-4 left-4 z-[1000]
+    flex items-center gap-4
+    rounded-full
+    border border-[var(--border)]
+    bg-[var(--surface)]/90
+    px-4 py-2.5
+    text-xs
+    text-[var(--text-muted)]
+    shadow-lg
+    backdrop-blur-md
+  "
+>
+  <span className="flex items-center gap-2">
+    <span className="h-3 w-3 rounded-full bg-[#e9c27b] ring-2 ring-[#c49345]/30" />
+    Main
+  </span>
+
+  <span className="flex items-center gap-2">
+    <span className="h-2.5 w-2.5 rounded-full bg-[#c46b30]" />
+    Sublocation
+  </span>
+</div>
     </div>
   )
 }

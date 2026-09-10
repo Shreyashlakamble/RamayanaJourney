@@ -1,5 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import JourneyMap from '../features/map/JourneyMap'
+import MapControls from '../features/map/MapControls'
 import { sampleLocations } from '../features/locations/data/sampleLocations'
 import { useLocation } from '../contexts/LocationContext'
 
@@ -8,6 +9,8 @@ function JourneyPage() {
     selectedLocationId,
     selectLocation,
   } = useLocation()
+
+  const [searchQuery, setSearchQuery] = useState('')
 
   const selectedLocation = useMemo(
     () =>
@@ -18,8 +21,13 @@ function JourneyPage() {
     [selectedLocationId],
   )
 
+  const handleReset = () => {
+    setSearchQuery('')
+    selectLocation(null)
+  }
+
   return (
-    <section className="bg-[var(--background)] px-6 py-28">
+    <section className="min-h-screen bg-[var(--background)] px-6 py-28">
       <div className="mx-auto max-w-7xl">
         <div className="max-w-3xl">
           <p className="text-sm font-medium uppercase tracking-[0.3em] text-[var(--primary)]">
@@ -38,13 +46,25 @@ function JourneyPage() {
         </div>
 
         <div className="mt-12">
+          <MapControls
+            locations={sampleLocations}
+            searchQuery={searchQuery}
+            selectedLocation={selectedLocation}
+            onSearchChange={setSearchQuery}
+            onSelectLocation={(location) => {
+              selectLocation(location.id)
+              setSearchQuery(location.name)
+            }}
+            onReset={handleReset}
+          />
+
           <JourneyMap
             locations={sampleLocations}
             selectedLocation={selectedLocation}
             onSelectLocation={(location) =>
               selectLocation(location.id)
             }
-            onClosePanel={() => selectLocation(null)}
+            onClosePanel={handleReset}
           />
         </div>
       </div>
