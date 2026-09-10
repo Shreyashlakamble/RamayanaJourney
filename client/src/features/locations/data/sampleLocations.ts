@@ -27,75 +27,131 @@ export const sampleLocations: Location[] = [
     active: true,
   },
 
-  {
-    id: 'chitrakoot',
-    name: 'Chitrakoot',
-    slug: 'chitrakoot',
-    type: 'main',
-    parentId: null,
+{
+  id: 'chitrakoot',
+  name: 'Chitrakoot',
+  slug: 'chitrakoot',
+  type: 'main',
+  parentId: null,
 
-    latitude: 25.146,
-    longitude: 80.865,
+  latitude: 25.146,
+  longitude: 80.865,
 
-    region: 'Central India',
-    state: 'Uttar Pradesh / Madhya Pradesh',
-    country: 'India',
+  region: 'Central India',
+  state: 'Uttar Pradesh / Madhya Pradesh',
+  country: 'India',
 
-    shortDescription:
-      'A forest region deeply connected with the exile period of Shri Ram.',
+  shortDescription:
+    'A forest region deeply connected with the exile period of Shri Ram.',
 
-    description:
-      'Chitrakoot is an important chapter in the geographical journey of the Ramayana.',
+  description:
+    'Chitrakoot occupies a central place in the geographical memory of the Ramayana and is associated with a significant period of Shri Ram, Sita and Lakshmana’s years of exile.',
 
-    timelineOrder: 2,
+  introduction:
+    'Among the forest landscapes associated with the Ramayana, Chitrakoot stands out as a place of retreat, devotion and remembrance. The region brings together rivers, hills, caves and sacred spaces that continue to shape its living cultural landscape.',
 
-    featured: true,
-    active: true,
-  },
+  history:
+    'The traditions surrounding Chitrakoot connect the region with the exile journey of Shri Ram, Sita and Lakshmana. Many places across the wider landscape preserve local memories, narratives and devotional traditions associated with this chapter of the Ramayana.',
 
-  {
-    id: 'ramghat',
-    name: 'Ramghat',
-    slug: 'ramghat',
-    type: 'sub',
-    parentId: 'chitrakoot',
+  significance:
+    'Chitrakoot represents a meeting point between landscape, memory and living tradition.',
 
-    latitude: 25.2006,
-    longitude: 80.8562,
+  highlights: [
+    'Ramghat and the Mandakini River',
+    'Kamadgiri pilgrimage circuit',
+    'Gupt Godavari caves',
+    'Hanuman Dhara',
+  ],
 
-    region: 'Chitrakoot',
-    state: 'Uttar Pradesh',
-    country: 'India',
+  timelineOrder: 2,
 
-    shortDescription:
-      'A prominent riverside location associated with Chitrakoot.',
+  featured: true,
+  active: true,
 
-    timelineOrder: 3,
+  gallery: [],
+},
 
-    active: true,
-  },
+{
+  id: 'ramghat',
+  name: 'Ramghat',
+  slug: 'ramghat',
+  type: 'sub',
+  parentId: 'chitrakoot',
 
-  {
-    id: 'gupt-godavari',
-    name: 'Gupt Godavari',
-    slug: 'gupt-godavari',
-    type: 'sub',
-    parentId: 'chitrakoot',
+  latitude: 25.2006,
+  longitude: 80.8562,
 
-    latitude: 25.155,
-    longitude: 80.806,
-    
-    region: 'Chitrakoot',
-    state: 'Madhya Pradesh',
-    country: 'India',
+  region: 'Chitrakoot',
+  state: 'Uttar Pradesh',
+  country: 'India',
 
-    shortDescription:
-      'A cave complex associated with the Ramayana traditions of Chitrakoot.',
+  shortDescription:
+    'A prominent riverside location associated with Chitrakoot.',
 
-    timelineOrder: 4,
+  description:
+    'Ramghat lies along the Mandakini River and is one of the most prominent sacred spaces within the Chitrakoot landscape.',
 
-    active: true,
-  },
+  introduction:
+    'The riverfront forms one of the defining landscapes of Chitrakoot, bringing together pilgrimage, ritual and everyday life.',
+
+  history:
+    'Local traditions associate the wider river landscape with the period of Shri Ram’s stay in Chitrakoot.',
+
+  significance:
+    'Ramghat demonstrates how the geographical memory of the Ramayana continues to exist within a living pilgrimage landscape.',
+
+  highlights: [
+    'Mandakini River',
+    'Riverside pilgrimage',
+    'Evening devotional traditions',
+  ],
+
+  timelineOrder: 3,
+
+  active: true,
+
+  gallery: [],
+},
+
+{
+  id: 'gupt-godavari',
+  name: 'Gupt Godavari',
+  slug: 'gupt-godavari',
+  type: 'sub',
+  parentId: 'chitrakoot',
+
+  latitude: 25.155,
+  longitude: 80.806,
+
+  region: 'Chitrakoot',
+  state: 'Madhya Pradesh',
+  country: 'India',
+
+  shortDescription:
+    'A cave complex associated with the Ramayana traditions of Chitrakoot.',
+
+  description:
+    'Gupt Godavari is a dramatic cave landscape associated with the Ramayana traditions of the Chitrakoot region.',
+
+  introduction:
+    'The caves create one of the most distinctive natural environments within the Chitrakoot journey, where geology and sacred tradition meet.',
+
+  history:
+    'Local traditions connect the caves with episodes from the Ramayana and preserve a strong association with Shri Ram and Lakshmana.',
+
+  significance:
+    'Gupt Godavari demonstrates the way natural landscapes become part of remembered sacred geography.',
+
+  highlights: [
+    'Natural cave formations',
+    'Water within the cave system',
+    'Local Ramayana traditions',
+  ],
+
+  active: true,
+
+  gallery: [],
+},
 
   {
     id: 'panchavati',

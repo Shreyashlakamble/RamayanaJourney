@@ -24,4 +24,15 @@ export interface Location {
 
   featured?: boolean
   active?: boolean
+
+  // Content used by the location detail page.
+  introduction?: string
+  history?: string
+
+  // Optional content sections.
+  highlights?: string[]
+  significance?: string
+
+  // Gallery image paths/URLs.
+  gallery?: string[]
 }
