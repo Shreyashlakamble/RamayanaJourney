@@ -1,3 +1,4 @@
+import Gallery from '../features/gallery/Gallery'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, MapPin } from 'lucide-react'
 
@@ -324,23 +325,40 @@ function LocationPage() {
       )}
 
       {/* Gallery placeholder */}
-      <section className="px-6 py-20 lg:px-8 lg:py-28">
-        <div className="mx-auto max-w-7xl">
-          <p className="text-sm font-medium uppercase tracking-[0.3em] text-[var(--primary)]">
-            Photography archive
-          </p>
+      {/* Photography archive */}
+<section className="px-6 py-20 lg:px-8 lg:py-28">
+  <div className="mx-auto max-w-7xl">
+    <div className="max-w-3xl">
+      <p className="text-sm font-medium uppercase tracking-[0.3em] text-[var(--primary)]">
+        Photography archive
+      </p>
 
-          <h2 className="mt-4 text-4xl font-semibold tracking-tight md:text-5xl">
-            The visual memory of the place.
-          </h2>
+      <h2 className="mt-4 text-4xl font-semibold tracking-tight md:text-5xl">
+        The visual memory of the place.
+      </h2>
 
-          <div className="mt-10 rounded-3xl border border-dashed border-[var(--border)] bg-[var(--surface)] p-12 text-center">
-            <p className="text-[var(--text-muted)]">
-              Location photography will appear here.
-            </p>
-          </div>
-        </div>
-      </section>
+      <p className="mt-5 text-lg leading-8 text-[var(--text-muted)]">
+        Explore photographs documenting the landscape,
+        architecture, traditions, and visual character of
+        {` ${location.name}`}.
+      </p>
+    </div>
+
+    <div className="mt-10">
+      <Gallery
+        images={(location.gallery ?? []).map(
+          (image, index) => ({
+            id: `${location.id}-image-${index + 1}`,
+            src: image,
+            alt: `${location.name} photograph ${index + 1}`,
+            title: location.name,
+            location: location.region,
+          }),
+        )}
+      />
+    </div>
+  </div>
+</section>
     </article>
   )
 }

@@ -68,7 +68,12 @@ export const sampleLocations: Location[] = [
   featured: true,
   active: true,
 
-  gallery: [],
+  gallery: [
+  '/images/hero/gallery-01.svg',
+  '/images/hero/gallery-02.svg',
+  '/images/hero/gallery-03.svg',
+  '/images/hero/hero-placeholder.svg',
+],
 },
 
 {
@@ -110,7 +115,11 @@ export const sampleLocations: Location[] = [
 
   active: true,
 
-  gallery: [],
+  gallery: [
+  '/images/hero/gallery-02.svg',
+  '/images/hero/gallery-03.svg',
+  '/images/hero/hero-placeholder.svg',
+],
 },
 
 {
@@ -150,7 +159,11 @@ export const sampleLocations: Location[] = [
 
   active: true,
 
-  gallery: [],
+  gallery: [
+  '/images/hero/gallery-03.svg',
+  '/images/hero/gallery-01.svg',
+  '/images/hero/gallery-02.svg',
+],
 },
 
   {

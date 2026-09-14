@@ -210,7 +210,7 @@ function JourneyMap({
             ? 'journey-map--dark'
             : 'journey-map--light'
         }
-        relative h-[700px]
+        relative h-[560px] sm:h-[620px] lg:h-[700px]
         overflow-hidden
         rounded-3xl
         border border-[var(--border)]
