@@ -24,6 +24,8 @@ interface JourneyMapProps {
   selectedLocation: Location | undefined
   onSelectLocation: (location: Location) => void
   onClosePanel: () => void
+  showRoute?: boolean
+  mobileInteractionEnabled?: boolean
 }
 
 interface MapControllerProps {
@@ -31,16 +33,8 @@ interface MapControllerProps {
 }
 
 /**
- * Controls automatic map movement when a location is selected.
- *
- * Main location:
- *   → zoom to regional level
- *
- * Sublocation:
- *   → zoom closer to the selected place
- *
- * No selection:
- *   → return to India overview
+ * Automatically moves the map when a location
+ * is selected.
  */
 function MapController({
   selectedLocation,
@@ -75,8 +69,7 @@ function MapController({
 }
 
 /**
- * Watches the Leaflet map zoom level and gives
- * the current zoom value back to React.
+ * Tracks the Leaflet zoom level.
  */
 function MapZoomListener({
   onZoomChange,
@@ -100,23 +93,80 @@ function MapZoomListener({
   return null
 }
 
+/**
+ * Controls touch interaction on mobile.
+ *
+ * By default on mobile:
+ * - page scrolling remains natural
+ * - map dragging is disabled
+ * - touch zoom is disabled
+ *
+ * The user can enable map gestures with the
+ * mobile "Enable map gestures" control.
+ */
+function MapInteractionController({
+  mobileInteractionEnabled,
+}: {
+  mobileInteractionEnabled: boolean
+}) {
+  const map = useMap()
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(
+      '(max-width: 767px)',
+    )
+
+    const updateInteraction = () => {
+      const isMobile = mediaQuery.matches
+
+      const shouldEnable =
+        !isMobile || mobileInteractionEnabled
+
+      if (shouldEnable) {
+        map.dragging.enable()
+        map.touchZoom.enable()
+        map.scrollWheelZoom.enable()
+        map.doubleClickZoom.enable()
+      } else {
+        map.dragging.disable()
+        map.touchZoom.disable()
+        map.scrollWheelZoom.disable()
+        map.doubleClickZoom.disable()
+      }
+    }
+
+    updateInteraction()
+
+    mediaQuery.addEventListener(
+      'change',
+      updateInteraction,
+    )
+
+    return () => {
+      mediaQuery.removeEventListener(
+        'change',
+        updateInteraction,
+      )
+    }
+  }, [map, mobileInteractionEnabled])
+
+  return null
+}
+
 function JourneyMap({
   locations,
   selectedLocation,
   onSelectLocation,
   onClosePanel,
+  showRoute = true,
+  mobileInteractionEnabled = false,
 }: JourneyMapProps) {
   const { theme } = useTheme()
 
-  /**
-   * React state for the current Leaflet zoom.
-   *
-   * Initial India overview = zoom 5.
-   */
   const [zoom, setZoom] = useState(5)
 
   /**
-   * Get all active main locations.
+   * Main locations.
    */
   const mainLocations = useMemo(
     () => getMainLocations(locations),
@@ -124,19 +174,7 @@ function JourneyMap({
   )
 
   /**
-   * Determine which markers should currently
-   * be displayed.
-   *
-   * Example:
-   *
-   * No selection
-   * → main locations
-   *
-   * Chitrakoot selected
-   * → main locations + Chitrakoot children
-   *
-   * Gupt Godavari selected
-   * → main locations + Chitrakoot children
+   * Determine which locations should be visible.
    */
   const visibleLocations = useMemo(
     () =>
@@ -149,8 +187,7 @@ function JourneyMap({
   )
 
   /**
-   * Main locations sorted according to the
-   * narrative journey order.
+   * Main journey sequence.
    */
   const routeLocations = useMemo(
     () =>
@@ -163,20 +200,18 @@ function JourneyMap({
   )
 
   /**
-   * Coordinates used to draw the journey route.
+   * Journey route coordinates.
    */
   const routeCoordinates = routeLocations.map(
     (location) =>
-      [location.latitude, location.longitude] as [
-        number,
-        number,
-      ],
+      [
+        location.latitude,
+        location.longitude,
+      ] as [number, number],
   )
 
   /**
-   * When a main location or one of its sublocations
-   * is selected, keep the entire regional sibling
-   * context available.
+   * Regional sublocations for the selected location.
    */
   const selectedSubLocations = useMemo(() => {
     if (!selectedLocation) {
@@ -210,10 +245,11 @@ function JourneyMap({
             ? 'journey-map--dark'
             : 'journey-map--light'
         }
-        relative h-[560px] sm:h-[620px] lg:h-[700px]
+        relative
+        h-full
+        w-full
         overflow-hidden
-        rounded-3xl
-        border border-[var(--border)]
+        bg-[var(--background)]
       `}
     >
       <MapContainer
@@ -222,39 +258,45 @@ function JourneyMap({
         scrollWheelZoom
         className="h-full w-full"
       >
-        {/* Track Leaflet zoom changes */}
-        <MapZoomListener onZoomChange={setZoom} />
+        <MapZoomListener
+          onZoomChange={setZoom}
+        />
 
-        {/* Move map when location selection changes */}
         <MapController
           selectedLocation={selectedLocation}
         />
 
-        {/* OpenStreetMap */}
+        <MapInteractionController
+          mobileInteractionEnabled={
+            mobileInteractionEnabled
+          }
+        />
+
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           maxZoom={19}
         />
 
-        {/* Main journey route */}
-        {routeCoordinates.length > 1 && (
-          <Polyline
-            positions={routeCoordinates}
-            pathOptions={{
-              color:
-                theme === 'dark'
-                  ? '#e9c27b'
-                  : '#a85422',
-              weight: 3,
-              opacity:
-                theme === 'dark' ? 0.85 : 0.65,
-              dashArray: '8 8',
-            }}
-          />
-        )}
+        {showRoute &&
+          routeCoordinates.length > 1 && (
+            <Polyline
+              positions={routeCoordinates}
+              pathOptions={{
+                color:
+                  theme === 'dark'
+                    ? '#e9c27b'
+                    : '#a85422',
+                weight: 3,
+                opacity:
+                  theme === 'dark'
+                    ? 0.85
+                    : 0.65,
+                dashArray: '8 8',
+              }}
+            />
+          )}
 
-        {/* Location markers */}
         {visibleLocations.map((location) => (
           <MapMarker
             key={location.id}
@@ -267,76 +309,11 @@ function JourneyMap({
         ))}
       </MapContainer>
 
-      {/* Selected location panel */}
       <MapInfoPanel
         location={selectedLocation}
         subLocations={selectedSubLocations}
         onClose={onClosePanel}
       />
-
-      {/* Map legend */}
-      <div
-        className="
-          absolute
-          bottom-4
-          left-4
-          z-[1000]
-          flex
-          items-center
-          gap-4
-          rounded-full
-          border border-[var(--border)]
-          bg-[var(--surface)]/90
-          px-4
-          py-2.5
-          text-xs
-          text-[var(--text-muted)]
-          shadow-lg
-          backdrop-blur-md
-        "
-      >
-        <span className="flex items-center gap-2">
-          <span
-            className="
-              h-3 w-3 rounded-full
-              bg-[#e9c27b]
-              ring-2 ring-[#c49345]/30
-            "
-          />
-          Main
-        </span>
-
-        <span className="flex items-center gap-2">
-          <span
-            className="
-              h-2.5 w-2.5 rounded-full
-              bg-[#c46b30]
-            "
-          />
-          Sublocation
-        </span>
-      </div>
-
-      {/* Development zoom indicator */}
-      <div
-        className="
-          absolute
-          bottom-4
-          right-4
-          z-[1000]
-          rounded-full
-          border border-[var(--border)]
-          bg-[var(--surface)]/90
-          px-4
-          py-2
-          text-xs
-          text-[var(--text-muted)]
-          shadow-lg
-          backdrop-blur-md
-        "
-      >
-        Zoom {zoom}
-      </div>
     </div>
   )
 }

@@ -16,32 +16,44 @@ function MapInfoPanel({
     return null
   }
 
+  const visibleSubLocations =
+    subLocations.slice(0, 4)
+
+  const remainingSubLocations =
+    Math.max(
+      subLocations.length -
+        visibleSubLocations.length,
+      0,
+    )
+
   return (
     <aside
       className="
         absolute
-        inset-x-3
         bottom-3
+        left-3
+        right-3
         z-[1000]
-        max-h-[58%]
-        overflow-y-auto
+        overflow-hidden
         rounded-2xl
-        border border-[var(--border)]
-        bg-[var(--surface)]/95
+        border
+        border-[var(--border)]
+        bg-[var(--surface)]/97
         text-[var(--text)]
         shadow-2xl
         backdrop-blur-xl
 
-        md:inset-x-auto
         md:bottom-auto
+        md:left-auto
         md:right-4
         md:top-4
-        md:w-[360px]
+        md:w-[380px]
         md:max-h-[calc(100%-2rem)]
+        md:overflow-y-auto
       "
     >
-      {/* Mobile drag indicator */}
-      <div className="flex justify-center pt-3 md:hidden">
+      {/* Mobile drag handle */}
+      <div className="flex justify-center pt-2.5 md:hidden">
         <div
           className="
             h-1
@@ -61,8 +73,10 @@ function MapInfoPanel({
           gap-4
           border-b
           border-[var(--border)]
-          p-4
-          sm:p-5
+          px-4
+          py-3.5
+          sm:px-5
+          sm:py-4
         "
       >
         <div className="min-w-0">
@@ -129,21 +143,23 @@ function MapInfoPanel({
         </button>
       </div>
 
-      {/* Content */}
-      <div className="p-4 sm:p-5">
+      {/* Compact content */}
+      <div className="px-4 pb-4 pt-3.5 sm:p-5">
         <p
           className="
             text-sm
-            leading-6
+            leading-5
             text-[var(--text-muted)]
+            sm:leading-6
           "
         >
           {location.shortDescription}
         </p>
 
+        {/* Sublocations directly under main location */}
         {location.type === 'main' &&
-          subLocations.length > 0 && (
-            <div className="mt-4 sm:mt-5">
+          visibleSubLocations.length > 0 && (
+            <div className="mt-3.5">
               <p
                 className="
                   text-[10px]
@@ -156,20 +172,26 @@ function MapInfoPanel({
                 Explore this region
               </p>
 
-              <div className="mt-3 space-y-2">
-                {subLocations.map(
+              <div
+                className="
+                  mt-2.5
+                  grid
+                  grid-cols-2
+                  gap-2
+                "
+              >
+                {visibleSubLocations.map(
                   (subLocation) => (
                     <Link
                       key={subLocation.id}
                       to={`/locations/${subLocation.slug}`}
                       className="
-                        block
                         rounded-xl
                         border
                         border-[var(--border)]
                         bg-[var(--background)]
-                        px-4
-                        py-3
+                        px-3
+                        py-2.5
                         transition-colors
                         hover:bg-[var(--surface-muted)]
                       "
@@ -178,28 +200,29 @@ function MapInfoPanel({
                         {subLocation.name}
                       </span>
 
-                      <span
-                        className="
-                          mt-1
-                          block
-                          text-xs
-                          leading-5
-                          text-[var(--text-muted)]
-                        "
-                      >
-                        {subLocation.shortDescription}
+                      <span className="mt-0.5 block text-[11px] text-[var(--text-muted)]">
+                        Sublocation
                       </span>
                     </Link>
                   ),
                 )}
               </div>
+
+              {remainingSubLocations > 0 && (
+                <p className="mt-2 text-[11px] text-[var(--text-muted)]">
+                  + {remainingSubLocations}{' '}
+                  more places available on the full
+                  location page.
+                </p>
+              )}
             </div>
           )}
 
+        {/* Main action stays immediately accessible */}
         <Link
           to={`/locations/${location.slug}`}
           className="
-            mt-4
+            mt-3.5
             inline-flex
             w-full
             items-center
@@ -213,7 +236,6 @@ function MapInfoPanel({
             text-white
             transition-colors
             hover:bg-[var(--primary-dark)]
-            sm:mt-5
           "
         >
           View Location

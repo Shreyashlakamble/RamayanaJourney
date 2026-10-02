@@ -170,3 +170,9 @@ img {
 .journey-map--dark .leaflet-control-attribution a {
   color: #e9c27b;
 }
+/* Mobile journey map scrolling */
+@media (max-width: 767px) {
+  .journey-map .leaflet-container {
+    touch-action: pan-y;
+  }
+}
