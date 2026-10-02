@@ -5,12 +5,14 @@ import {
   MapPinned,
   Menu,
   Moon,
-  Move,
   Search,
   Sun,
   X,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import {
+  useMemo,
+  useState,
+} from 'react'
 import { Link } from 'react-router-dom'
 
 import type { Location } from '../../../types/location'
@@ -22,8 +24,10 @@ import {
 } from '../../locations/utils/locationHelpers'
 
 import JourneyMap from '../JourneyMap'
+
 import JourneySidebar, {
   type JourneySidebarTab,
+  type LocationFiltersState,
 } from './JourneySidebar'
 
 interface JourneyMapShellProps {
@@ -40,14 +44,19 @@ function JourneyMapShell({
 }: JourneyMapShellProps) {
   const { theme, toggleTheme } = useTheme()
 
+  /*
+   * Currently selected map location.
+   */
   const [
     selectedLocationId,
     setSelectedLocationId,
   ] = useState<string | null>(null)
 
   /*
-   * Keep the selected location name visible
-   * in the search input.
+   * Search field.
+   *
+   * The selected location name remains here
+   * after selection.
    */
   const [
     searchQuery,
@@ -55,47 +64,216 @@ function JourneyMapShell({
   ] = useState('')
 
   /*
-   * Controls whether search suggestions are visible.
-   *
-   * Selection:
-   *   → keep selected name
-   *   → close suggestions
+   * Controls search suggestion visibility.
    */
   const [
     searchResultsOpen,
     setSearchResultsOpen,
   ] = useState(false)
 
+  /*
+   * Active sidebar section.
+   */
   const [activeTab, setActiveTab] =
-    useState<JourneySidebarTab>('explore')
+    useState<JourneySidebarTab>(
+      'explore',
+    )
 
+  /*
+   * Journey route visibility.
+   */
   const [showRoute, setShowRoute] =
     useState(true)
 
+  /*
+   * Mobile navigation drawer.
+   */
   const [
     mobileMenuOpen,
     setMobileMenuOpen,
   ] = useState(false)
 
-  const [
-    mobileMapInteractive,
-    setMobileMapInteractive,
-  ] = useState(false)
+  /*
+   * Explicit map filters.
+   *
+   * Search is NOT part of this state.
+   *
+   * Search:
+   *   → finds a location
+   *
+   * Filters:
+   *   → change visible markers
+   */
+  const [filters, setFilters] =
+    useState<LocationFiltersState>({
+      type: 'all',
+      region: 'all',
+      state: 'all',
+    })
 
+  /*
+   * Current selected location object.
+   */
   const selectedLocation = useMemo(
     () =>
       locations.find(
         (location) =>
-          location.id === selectedLocationId,
+          location.id ===
+          selectedLocationId,
       ),
-    [locations, selectedLocationId],
+    [
+      locations,
+      selectedLocationId,
+    ],
   )
 
+  /*
+   * Main locations.
+   */
   const mainLocations = useMemo(
     () => getMainLocations(locations),
     [locations],
   )
 
+  /*
+   * Filter options: regions.
+   *
+   * Explicit type guard removes undefined values
+   * from the resulting array.
+   */
+  const filterRegions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          locations
+            .filter(
+              (location) =>
+                location.active !== false,
+            )
+            .map(
+              (location) =>
+                location.region,
+            )
+            .filter(
+              (
+                value,
+              ): value is string =>
+                typeof value ===
+                  'string' &&
+                value.trim().length > 0,
+            ),
+        ),
+      ).sort((a, b) =>
+        a.localeCompare(b),
+      ),
+    [locations],
+  )
+
+  /*
+   * Filter options: states.
+   *
+   * Explicit type guard removes undefined values.
+   */
+  const filterStates = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          locations
+            .filter(
+              (location) =>
+                location.active !== false,
+            )
+            .map(
+              (location) =>
+                location.state,
+            )
+            .filter(
+              (
+                value,
+              ): value is string =>
+                typeof value ===
+                  'string' &&
+                value.trim().length > 0,
+            ),
+        ),
+      ).sort((a, b) =>
+        a.localeCompare(b),
+      ),
+    [locations],
+  )
+
+  /*
+   * Map-visible locations.
+   *
+   * IMPORTANT:
+   *
+   * Search text is deliberately excluded.
+   *
+   * Explicit filters determine visibility.
+   */
+  const filteredLocations = useMemo(() => {
+    return locations
+      .filter(
+        (location) =>
+          location.active !== false,
+      )
+      .filter((location) => {
+        if (filters.type === 'all') {
+          return true
+        }
+
+        return (
+          location.type ===
+          filters.type
+        )
+      })
+      .filter((location) => {
+        if (filters.region === 'all') {
+          return true
+        }
+
+        return (
+          String(location.region)
+            .trim()
+            .toLowerCase() ===
+          filters.region
+            .trim()
+            .toLowerCase()
+        )
+      })
+      .filter((location) => {
+        if (filters.state === 'all') {
+          return true
+        }
+
+        return (
+          String(location.state)
+            .trim()
+            .toLowerCase() ===
+          filters.state
+            .trim()
+            .toLowerCase()
+        )
+      })
+  }, [
+    locations,
+    filters,
+  ])
+
+  /*
+   * Whether the user has explicitly changed
+   * a map filter.
+   */
+  const hasActiveFilters =
+    filters.type !== 'all' ||
+    filters.region !== 'all' ||
+    filters.state !== 'all'
+
+  /*
+   * Search the COMPLETE dataset.
+   *
+   * Searching does not hide the rest of the map.
+   */
   const searchResults = useMemo(() => {
     const query = searchQuery
       .trim()
@@ -106,6 +284,10 @@ function JourneyMapShell({
     }
 
     return locations
+      .filter(
+        (location) =>
+          location.active !== false,
+      )
       .filter((location) => {
         const searchableText = [
           location.name,
@@ -117,138 +299,218 @@ function JourneyMapShell({
           .join(' ')
           .toLowerCase()
 
-        return searchableText.includes(query)
+        return searchableText.includes(
+          query,
+        )
       })
-      .slice(0, 12)
-  }, [locations, searchQuery])
+      .slice(0, 20)
+  }, [
+    locations,
+    searchQuery,
+  ])
 
   /*
-   * Mobile search groups.
+   * Group search results hierarchically:
+   *
+   * Chitrakoot
+   *   ├── Ramghat
+   *   └── Gupt Godavari
+   *
+   * When searching for a main location,
+   * show all of its sublocations.
+   *
+   * When searching for a sublocation,
+   * show only the matching child.
    */
-  const searchGroups = useMemo<SearchGroup[]>(
-    () => {
-      if (!searchQuery.trim()) {
-        return []
-      }
+  const searchGroups = useMemo<
+    SearchGroup[]
+  >(() => {
+    if (!searchQuery.trim()) {
+      return []
+    }
 
-      const resultIds = new Set(
-        searchResults.map(
-          (location) => location.id,
-        ),
-      )
+    const resultIds = new Set(
+      searchResults.map(
+        (location) =>
+          location.id,
+      ),
+    )
 
-      return mainLocations
-        .map((mainLocation) => {
-          const mainMatches =
-            resultIds.has(mainLocation.id)
-
-          const subLocations = getSubLocations(
-            locations,
+    return mainLocations
+      .map((mainLocation) => {
+        const mainMatches =
+          resultIds.has(
             mainLocation.id,
           )
 
-          const matchingSubLocations =
-            mainMatches
-              ? subLocations
-              : subLocations.filter(
-                  (location) =>
-                    resultIds.has(location.id),
-                )
+        const children =
+          getSubLocations(
+            locations,
+            mainLocation.id,
+          ).filter(
+            (location) =>
+              location.active !== false,
+          )
 
-          if (
-            !mainMatches &&
-            matchingSubLocations.length === 0
-          ) {
-            return null
-          }
+        const matchingChildren =
+          mainMatches
+            ? children
+            : children.filter(
+                (child) =>
+                  resultIds.has(
+                    child.id,
+                  ),
+              )
 
-          return {
-            mainLocation,
-            subLocations:
-              matchingSubLocations,
-          }
-        })
-        .filter(
-          (
-            group,
-          ): group is SearchGroup =>
-            group !== null,
-        )
-    },
-    [
-      locations,
-      mainLocations,
-      searchQuery,
-      searchResults,
-    ],
-  )
+        if (
+          !mainMatches &&
+          matchingChildren.length === 0
+        ) {
+          return null
+        }
+
+        return {
+          mainLocation,
+          subLocations:
+            matchingChildren,
+        }
+      })
+      .filter(
+        (
+          group,
+        ): group is SearchGroup =>
+          group !== null,
+      )
+  }, [
+    locations,
+    mainLocations,
+    searchQuery,
+    searchResults,
+  ])
 
   /*
-   * Select a location.
+   * Selecting a location:
    *
-   * Important UX:
-   *
-   * Search box:
-   *   Chitrakoot
-   *
-   * Search popup:
-   *   closed
-   *
-   * Journey list:
-   *   Chitrakoot expanded
+   * 1. Save it.
+   * 2. Keep the name in search.
+   * 3. Close suggestions.
+   * 4. Open Journey hierarchy.
+   * 5. Clear restrictive filters.
    */
   const handleSelectLocation = (
     location: Location,
   ) => {
-    setSelectedLocationId(location.id)
+    setSelectedLocationId(
+      location.id,
+    )
 
     /*
-     * Keep selected location text in search.
+     * Keep selected location in the search box.
      */
-    setSearchQuery(location.name)
+    setSearchQuery(
+      location.name,
+    )
 
     /*
-     * Close search suggestions.
+     * Hide the result popup.
      */
     setSearchResultsOpen(false)
 
     /*
-     * Automatically switch the desktop
-     * hierarchy to Journey mode.
-     *
-     * This is what gives:
-     *
-     * Chitrakoot
-     *   ├─ Ramghat
-     *   └─ Gupt Godavari
+     * Show the parent-child journey hierarchy.
      */
     setActiveTab('journey')
 
     /*
-     * Close mobile map drawer.
+     * Clear explicit filters so the newly
+     * selected location isn't hidden.
+     */
+    setFilters({
+      type: 'all',
+      region: 'all',
+      state: 'all',
+    })
+
+    /*
+     * Close the mobile menu.
      */
     setMobileMenuOpen(false)
   }
 
-  const handleReset = () => {
-    setSelectedLocationId(null)
-    setSearchQuery('')
-    setSearchResultsOpen(false)
-    setActiveTab('explore')
-    setMobileMenuOpen(false)
-  }
-
+  /*
+   * Search typing.
+   */
   const handleSearchChange = (
     value: string,
   ) => {
     setSearchQuery(value)
-    setSearchResultsOpen(true)
+
+    setSearchResultsOpen(
+      value.trim().length > 0,
+    )
   }
 
+  /*
+   * Re-open suggestions when the user
+   * focuses the populated search field.
+   */
   const handleSearchFocus = () => {
     if (searchQuery.trim()) {
       setSearchResultsOpen(true)
     }
+  }
+
+  /*
+   * Apply an explicit map filter.
+   *
+   * Search state is cleared because the user
+   * has switched from "find" mode into
+   * "filter" mode.
+   */
+  const handleFiltersChange = (
+    nextFilters: LocationFiltersState,
+  ) => {
+    setFilters(nextFilters)
+
+    setSelectedLocationId(null)
+
+    setSearchQuery('')
+
+    setSearchResultsOpen(false)
+
+    setActiveTab('explore')
+  }
+
+  /*
+   * Reset only explicit filters.
+   */
+  const handleResetFilters = () => {
+    setFilters({
+      type: 'all',
+      region: 'all',
+      state: 'all',
+    })
+  }
+
+  /*
+   * Reset the whole map exploration state.
+   */
+  const handleReset = () => {
+    setSelectedLocationId(null)
+
+    setSearchQuery('')
+
+    setSearchResultsOpen(false)
+
+    setFilters({
+      type: 'all',
+      region: 'all',
+      state: 'all',
+    })
+
+    setActiveTab('explore')
+
+    setMobileMenuOpen(false)
   }
 
   return (
@@ -268,15 +530,21 @@ function JourneyMapShell({
       {/* Map */}
       <div className="absolute inset-0">
         <JourneyMap
-          locations={locations}
-          selectedLocation={selectedLocation}
+          locations={
+            filteredLocations
+          }
+          selectedLocation={
+            selectedLocation
+          }
           onSelectLocation={
             handleSelectLocation
           }
-          onClosePanel={handleReset}
+          onClosePanel={
+            handleReset
+          }
           showRoute={showRoute}
-          mobileInteractionEnabled={
-            mobileMapInteractive
+          filteredView={
+            hasActiveFilters
           }
         />
       </div>
@@ -284,25 +552,53 @@ function JourneyMapShell({
       {/* Desktop sidebar */}
       <JourneySidebar
         locations={locations}
-        selectedLocation={selectedLocation}
+        selectedLocation={
+          selectedLocation
+        }
         searchQuery={searchQuery}
-        searchResults={searchResults}
+        searchResults={
+          searchResults
+        }
         activeTab={activeTab}
         showRoute={showRoute}
+        filters={filters}
+        filterRegions={
+          filterRegions
+        }
+        filterStates={
+          filterStates
+        }
+        filteredResultCount={
+          filteredLocations.length
+        }
         showSearch
         showSearchResults={
           searchResultsOpen
         }
-        onSearchChange={handleSearchChange}
-        onSearchFocus={handleSearchFocus}
+        onSearchChange={
+          handleSearchChange
+        }
+        onSearchFocus={
+          handleSearchFocus
+        }
         onSelectLocation={
           handleSelectLocation
         }
-        onTabChange={setActiveTab}
+        onTabChange={
+          setActiveTab
+        }
         onToggleRoute={() =>
-          setShowRoute((current) => !current)
+          setShowRoute(
+            (current) => !current,
+          )
         }
         onReset={handleReset}
+        onFiltersChange={
+          handleFiltersChange
+        }
+        onResetFilters={
+          handleResetFilters
+        }
         className="
           absolute
           bottom-0
@@ -314,7 +610,7 @@ function JourneyMapShell({
         "
       />
 
-      {/* Mobile top controls */}
+      {/* Mobile search / theme / menu */}
       <div
         className="
           absolute
@@ -345,7 +641,9 @@ function JourneyMapShell({
             <input
               type="search"
               value={searchQuery}
-              onFocus={handleSearchFocus}
+              onFocus={
+                handleSearchFocus
+              }
               onChange={(event) =>
                 handleSearchChange(
                   event.target.value,
@@ -397,7 +695,9 @@ function JourneyMapShell({
                       (group) => (
                         <div
                           key={
-                            group.mainLocation.id
+                            group
+                              .mainLocation
+                              .id
                           }
                           className="
                             border-b
@@ -405,7 +705,7 @@ function JourneyMapShell({
                             last:border-b-0
                           "
                         >
-                          {/* Main */}
+                          {/* Main search result */}
                           <button
                             type="button"
                             onClick={() =>
@@ -435,7 +735,7 @@ function JourneyMapShell({
                               "
                             />
 
-                            <span>
+                            <span className="min-w-0">
                               <span className="block text-sm font-medium">
                                 {
                                   group
@@ -457,8 +757,8 @@ function JourneyMapShell({
                           </button>
 
                           {/* Sublocations */}
-                          {group.subLocations.length >
-                            0 && (
+                          {group.subLocations
+                            .length > 0 && (
                             <div
                               className="
                                 border-t
@@ -505,7 +805,7 @@ function JourneyMapShell({
                                       "
                                     />
 
-                                    <span>
+                                    <span className="min-w-0">
                                       <span className="block text-sm font-medium">
                                         {
                                           subLocation.name
@@ -573,7 +873,7 @@ function JourneyMapShell({
             )}
           </button>
 
-          {/* Map / site menu */}
+          {/* Mobile menu */}
           <button
             type="button"
             onClick={() =>
@@ -618,50 +918,6 @@ function JourneyMapShell({
           </button>
         </div>
       </div>
-
-      {/* Mobile map gesture button */}
-      <button
-        type="button"
-        onClick={() =>
-          setMobileMapInteractive(
-            (current) => !current,
-          )
-        }
-        aria-pressed={mobileMapInteractive}
-        className={`
-          absolute
-          right-3
-          top-20
-          z-[1200]
-          inline-flex
-          items-center
-          gap-2
-          rounded-full
-          border
-          px-4
-          py-2.5
-          text-xs
-          font-medium
-          shadow-xl
-          backdrop-blur-xl
-          transition
-          md:hidden
-          ${
-            mobileMapInteractive
-              ? 'border-[var(--primary)] bg-[var(--primary)] text-white'
-              : 'border-[var(--border)] bg-[var(--surface)]/95 text-[var(--text)]'
-          }
-        `}
-      >
-        <Move
-          className="h-4 w-4"
-          aria-hidden="true"
-        />
-
-        {mobileMapInteractive
-          ? 'Map gestures on'
-          : 'Move map'}
-      </button>
 
       {/* Mobile navigation drawer */}
       {mobileMenuOpen && (
@@ -720,7 +976,9 @@ function JourneyMapShell({
                 <button
                   type="button"
                   onClick={() =>
-                    setMobileMenuOpen(false)
+                    setMobileMenuOpen(
+                      false,
+                    )
                   }
                   aria-label="Close navigation"
                   className="
@@ -746,7 +1004,9 @@ function JourneyMapShell({
                 <Link
                   to="/"
                   onClick={() =>
-                    setMobileMenuOpen(false)
+                    setMobileMenuOpen(
+                      false,
+                    )
                   }
                   className="
                     flex
@@ -760,20 +1020,22 @@ function JourneyMapShell({
                     py-3
                     text-sm
                     font-medium
-                    hover:bg-[var(--surface-muted)]
                   "
                 >
                   <Home
                     className="h-4 w-4 text-[var(--primary)]"
                     aria-hidden="true"
                   />
+
                   Home
                 </Link>
 
                 <Link
                   to="/journey"
                   onClick={() =>
-                    setMobileMenuOpen(false)
+                    setMobileMenuOpen(
+                      false,
+                    )
                   }
                   className="
                     flex
@@ -793,13 +1055,16 @@ function JourneyMapShell({
                     className="h-4 w-4 text-[var(--primary)]"
                     aria-hidden="true"
                   />
+
                   Journey
                 </Link>
 
                 <Link
                   to="/locations"
                   onClick={() =>
-                    setMobileMenuOpen(false)
+                    setMobileMenuOpen(
+                      false,
+                    )
                   }
                   className="
                     flex
@@ -813,20 +1078,22 @@ function JourneyMapShell({
                     py-3
                     text-sm
                     font-medium
-                    hover:bg-[var(--surface-muted)]
                   "
                 >
                   <MapPinned
                     className="h-4 w-4 text-[var(--primary)]"
                     aria-hidden="true"
                   />
+
                   Locations
                 </Link>
 
                 <Link
                   to="/about"
                   onClick={() =>
-                    setMobileMenuOpen(false)
+                    setMobileMenuOpen(
+                      false,
+                    )
                   }
                   className="
                     flex
@@ -840,13 +1107,13 @@ function JourneyMapShell({
                     py-3
                     text-sm
                     font-medium
-                    hover:bg-[var(--surface-muted)]
                   "
                 >
                   <Info
                     className="h-4 w-4 text-[var(--primary)]"
                     aria-hidden="true"
                   />
+
                   About
                 </Link>
               </nav>
@@ -859,12 +1126,36 @@ function JourneyMapShell({
                 selectedLocation={
                   selectedLocation
                 }
-                searchQuery={searchQuery}
-                searchResults={searchResults}
-                activeTab={activeTab}
-                showRoute={showRoute}
+                searchQuery={
+                  searchQuery
+                }
+                searchResults={
+                  searchResults
+                }
+                activeTab={
+                  activeTab
+                }
+                showRoute={
+                  showRoute
+                }
+                filters={filters}
+                filterRegions={
+                  filterRegions
+                }
+                filterStates={
+                  filterStates
+                }
+                filteredResultCount={
+                  filteredLocations.length
+                }
+                /*
+                 * Mobile top bar already owns search,
+                 * so don't render duplicate search here.
+                 */
                 showSearch={false}
-                showSearchResults={false}
+                showSearchResults={
+                  false
+                }
                 onSearchChange={
                   handleSearchChange
                 }
@@ -874,15 +1165,28 @@ function JourneyMapShell({
                 onSelectLocation={
                   handleSelectLocation
                 }
-                onTabChange={setActiveTab}
+                onTabChange={
+                  setActiveTab
+                }
                 onToggleRoute={() =>
                   setShowRoute(
-                    (current) => !current,
+                    (current) =>
+                      !current,
                   )
                 }
-                onReset={handleReset}
+                onReset={
+                  handleReset
+                }
+                onFiltersChange={
+                  handleFiltersChange
+                }
+                onResetFilters={
+                  handleResetFilters
+                }
                 onCloseMobile={() =>
-                  setMobileMenuOpen(false)
+                  setMobileMenuOpen(
+                    false,
+                  )
                 }
                 className="
                   w-full
@@ -892,7 +1196,7 @@ function JourneyMapShell({
               />
             </div>
 
-            {/* Mobile drawer footer */}
+            {/* Theme */}
             <div className="border-t border-[var(--border)] p-4">
               <button
                 type="button"

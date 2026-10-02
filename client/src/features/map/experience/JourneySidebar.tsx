@@ -1,6 +1,7 @@
 import {
   ChevronDown,
   Compass,
+  Filter,
   Layers,
   List,
   MapPinned,
@@ -25,6 +26,17 @@ export type JourneySidebarTab =
   | 'locations'
   | 'layers'
 
+export type LocationTypeFilter =
+  | 'all'
+  | 'main'
+  | 'sub'
+
+export interface LocationFiltersState {
+  type: LocationTypeFilter
+  region: string
+  state: string
+}
+
 interface JourneySidebarProps {
   locations: Location[]
   selectedLocation: Location | undefined
@@ -35,6 +47,11 @@ interface JourneySidebarProps {
   activeTab: JourneySidebarTab
   showRoute: boolean
 
+  filters: LocationFiltersState
+  filterRegions: string[]
+  filterStates: string[]
+  filteredResultCount: number
+
   showSearch?: boolean
   showSearchResults?: boolean
 
@@ -44,6 +61,10 @@ interface JourneySidebarProps {
   onTabChange: (tab: JourneySidebarTab) => void
   onToggleRoute: () => void
   onReset: () => void
+  onFiltersChange: (
+    filters: LocationFiltersState,
+  ) => void
+  onResetFilters: () => void
   onCloseMobile?: () => void
 
   className?: string
@@ -61,6 +82,10 @@ function JourneySidebar({
   searchResults,
   activeTab,
   showRoute,
+  filters,
+  filterRegions,
+  filterStates,
+  filteredResultCount,
   showSearch = true,
   showSearchResults = true,
   onSearchChange,
@@ -69,6 +94,8 @@ function JourneySidebar({
   onTabChange,
   onToggleRoute,
   onReset,
+  onFiltersChange,
+  onResetFilters,
   onCloseMobile,
   className = '',
 }: JourneySidebarProps) {
@@ -88,7 +115,7 @@ function JourneySidebar({
   )
 
   /*
-   * Find the main location that should be expanded.
+   * Determine which main location should be expanded.
    *
    * Main selected:
    *   → expand itself
@@ -118,7 +145,11 @@ function JourneySidebar({
   }, [locations, selectedLocation])
 
   /*
-   * Group search results under their parent.
+   * Hierarchical search results.
+   *
+   * Main location
+   *   ├── matching sublocation
+   *   └── matching sublocation
    */
   const searchGroups = useMemo<SearchGroup[]>(
     () => {
@@ -141,16 +172,15 @@ function JourneySidebar({
           const mainMatches =
             resultIds.has(mainLocation.id)
 
-          const allSubLocations =
-            getSubLocations(
-              locations,
-              mainLocation.id,
-            )
+          const subLocations = getSubLocations(
+            locations,
+            mainLocation.id,
+          )
 
           const matchingSubLocations =
             mainMatches
-              ? allSubLocations
-              : allSubLocations.filter(
+              ? subLocations
+              : subLocations.filter(
                   (location) =>
                     resultIds.has(location.id),
                 )
@@ -206,6 +236,23 @@ function JourneySidebar({
     },
   ]
 
+  const hasActiveFilters =
+    filters.type !== 'all' ||
+    filters.region !== 'all' ||
+    filters.state !== 'all'
+
+  const updateFilter = <
+    K extends keyof LocationFiltersState,
+  >(
+    key: K,
+    value: LocationFiltersState[K],
+  ) => {
+    onFiltersChange({
+      ...filters,
+      [key]: value,
+    })
+  }
+
   return (
     <aside
       className={`
@@ -222,7 +269,7 @@ function JourneySidebar({
         ${className}
       `}
     >
-      {/* Sidebar header */}
+      {/* Header */}
       <div
         className="
           flex
@@ -286,7 +333,7 @@ function JourneySidebar({
         )}
       </div>
 
-      {/* Desktop search */}
+      {/* Search */}
       {showSearch && (
         <div
           className="
@@ -316,7 +363,9 @@ function JourneySidebar({
               value={searchQuery}
               onFocus={onSearchFocus}
               onChange={(event) =>
-                onSearchChange(event.target.value)
+                onSearchChange(
+                  event.target.value,
+                )
               }
               placeholder="Search places, locations..."
               aria-label="Search places and locations"
@@ -341,7 +390,7 @@ function JourneySidebar({
             />
           </div>
 
-          {/* Search results only while actively searching */}
+          {/* Search suggestions */}
           {showSearchResults &&
             searchQuery.trim() && (
               <div
@@ -372,6 +421,7 @@ function JourneySidebar({
                         last:border-b-0
                       "
                     >
+                      {/* Main result */}
                       <button
                         type="button"
                         onClick={() =>
@@ -415,6 +465,7 @@ function JourneySidebar({
                         </span>
                       </button>
 
+                      {/* Sublocations */}
                       {group.subLocations.length >
                         0 && (
                         <div
@@ -422,7 +473,6 @@ function JourneySidebar({
                             border-t
                             border-[var(--border)]
                             bg-[var(--background)]/60
-                            py-1
                           "
                         >
                           {group.subLocations.map(
@@ -487,6 +537,206 @@ function JourneySidebar({
         </div>
       )}
 
+      {/* Filters */}
+      {showSearch && (
+        <div
+          className="
+            border-b
+            border-[var(--border)]
+            px-4
+            py-4
+          "
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Filter
+                className="
+                  h-4
+                  w-4
+                  text-[var(--primary)]
+                "
+                aria-hidden="true"
+              />
+
+              <p
+                className="
+                  text-[10px]
+                  font-medium
+                  uppercase
+                  tracking-[0.2em]
+                  text-[var(--text-muted)]
+                "
+              >
+                Filters
+              </p>
+            </div>
+
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={onResetFilters}
+                className="
+                  flex
+                  items-center
+                  gap-1.5
+                  text-[11px]
+                  text-[var(--text-muted)]
+                  transition
+                  hover:text-[var(--primary)]
+                "
+              >
+                <RotateCcw
+                  className="h-3 w-3"
+                  aria-hidden="true"
+                />
+
+                Reset
+              </button>
+            )}
+          </div>
+
+          {/* Type filter */}
+          <div
+            className="
+              mt-3
+              flex
+              rounded-xl
+              border
+              border-[var(--border)]
+              bg-[var(--background)]
+              p-1
+            "
+          >
+            {(
+              [
+                ['all', 'All'],
+                ['main', 'Main'],
+                ['sub', 'Sub'],
+              ] as [
+                LocationTypeFilter,
+                string,
+              ][]
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() =>
+                  updateFilter(
+                    'type',
+                    value,
+                  )
+                }
+                className={`
+                  flex-1
+                  rounded-lg
+                  px-2
+                  py-2
+                  text-[11px]
+                  font-medium
+                  transition
+                  ${
+                    filters.type === value
+                      ? 'bg-[var(--primary)] text-white'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                  }
+                `}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Region/state filters */}
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <select
+              value={filters.region}
+              onChange={(event) =>
+                updateFilter(
+                  'region',
+                  event.target.value,
+                )
+              }
+              aria-label="Filter by region"
+              className="
+                h-10
+                min-w-0
+                rounded-xl
+                border
+                border-[var(--border)]
+                bg-[var(--background)]
+                px-3
+                text-xs
+                text-[var(--text)]
+                outline-none
+                focus:border-[var(--primary)]
+              "
+            >
+              <option value="all">
+                All regions
+              </option>
+
+              {filterRegions.map(
+                (region) => (
+                  <option
+                    key={region}
+                    value={region}
+                  >
+                    {region}
+                  </option>
+                ),
+              )}
+            </select>
+
+            <select
+              value={filters.state}
+              onChange={(event) =>
+                updateFilter(
+                  'state',
+                  event.target.value,
+                )
+              }
+              aria-label="Filter by state"
+              className="
+                h-10
+                min-w-0
+                rounded-xl
+                border
+                border-[var(--border)]
+                bg-[var(--background)]
+                px-3
+                text-xs
+                text-[var(--text)]
+                outline-none
+                focus:border-[var(--primary)]
+              "
+            >
+              <option value="all">
+                All states
+              </option>
+
+              {filterStates.map(
+                (state) => (
+                  <option
+                    key={state}
+                    value={state}
+                  >
+                    {state}
+                  </option>
+                ),
+              )}
+            </select>
+          </div>
+
+          <p className="mt-3 text-[11px] text-[var(--text-muted)]">
+            Showing{' '}
+            <span className="font-semibold text-[var(--text)]">
+              {filteredResultCount}
+            </span>{' '}
+            locations
+          </p>
+        </div>
+      )}
+
       {/* Tabs */}
       <nav
         className="
@@ -538,7 +788,7 @@ function JourneySidebar({
         })}
       </nav>
 
-      {/* Content */}
+      {/* Sidebar content */}
       <div className="min-h-0 flex-1 overflow-y-auto">
         {/* Explore */}
         {activeTab === 'explore' && (
@@ -731,7 +981,7 @@ function JourneySidebar({
                           </span>
                         </span>
 
-                        {isExpanded && (
+                        {isExpanded ? (
                           <ChevronDown
                             className="
                               ml-auto
@@ -742,9 +992,7 @@ function JourneySidebar({
                             "
                             aria-hidden="true"
                           />
-                        )}
-
-                        {!isExpanded && (
+                        ) : (
                           <List
                             className="
                               ml-auto
@@ -758,7 +1006,7 @@ function JourneySidebar({
                         )}
                       </button>
 
-                      {/* Sublocations directly under selected main */}
+                      {/* Sublocations */}
                       {subLocations.length > 0 && (
                         <div
                           className="
@@ -804,15 +1052,7 @@ function JourneySidebar({
                                     }
                                   `}
                                 >
-                                  <span
-                                    className="
-                                      h-2
-                                      w-2
-                                      shrink-0
-                                      rounded-full
-                                      bg-[#c46b30]
-                                    "
-                                  />
+                                  <span className="h-2 w-2 shrink-0 rounded-full bg-[#c46b30]" />
 
                                   <span className="min-w-0">
                                     <span className="block text-sm font-medium">
@@ -852,12 +1092,13 @@ function JourneySidebar({
               </h2>
 
               <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
-                Use the search field above to find a
-                main location or one of its sublocations.
+                Search above or use the filters to narrow
+                down the complete location archive.
               </p>
             </div>
 
-            {!searchQuery.trim() ? (
+            {!searchQuery.trim() &&
+            !hasActiveFilters ? (
               <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--background)] p-6 text-center">
                 <Search
                   className="mx-auto h-6 w-6 text-[var(--primary)]"
@@ -874,121 +1115,16 @@ function JourneySidebar({
                 </p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {searchGroups.length > 0 ? (
-                  searchGroups.map(
-                    (group) => (
-                      <div
-                        key={
-                          group.mainLocation.id
-                        }
-                        className="
-                          overflow-hidden
-                          rounded-2xl
-                          border
-                          border-[var(--border)]
-                          bg-[var(--background)]
-                        "
-                      >
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onSelectLocation(
-                              group.mainLocation,
-                            )
-                          }
-                          className="
-                            flex
-                            w-full
-                            items-center
-                            gap-3
-                            px-4
-                            py-3
-                            text-left
-                            hover:bg-[var(--surface-muted)]
-                          "
-                        >
-                          <span className="h-3 w-3 rounded-full bg-[#e9c27b]" />
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--background)] p-4">
+                <p className="text-sm font-medium">
+                  {filteredResultCount} locations match
+                  your current search.
+                </p>
 
-                          <span className="min-w-0">
-                            <span className="block text-sm font-semibold">
-                              {
-                                group
-                                  .mainLocation
-                                  .name
-                              }
-                            </span>
-
-                            <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
-                              Main location
-                              {' · '}
-                              {
-                                group
-                                  .mainLocation
-                                  .region
-                              }
-                            </span>
-                          </span>
-                        </button>
-
-                        {group.subLocations.length >
-                          0 && (
-                          <div className="border-t border-[var(--border)]">
-                            {group.subLocations.map(
-                              (
-                                subLocation,
-                              ) => (
-                                <button
-                                  key={
-                                    subLocation.id
-                                  }
-                                  type="button"
-                                  onClick={() =>
-                                    onSelectLocation(
-                                      subLocation,
-                                    )
-                                  }
-                                  className="
-                                    flex
-                                    w-full
-                                    items-center
-                                    gap-3
-                                    border-b
-                                    border-[var(--border)]
-                                    px-4
-                                    py-3
-                                    pl-10
-                                    text-left
-                                    last:border-b-0
-                                    hover:bg-[var(--surface-muted)]
-                                  "
-                                >
-                                  <span className="h-2 w-2 rounded-full bg-[#c46b30]" />
-
-                                  <span>
-                                    <span className="block text-sm font-medium">
-                                      {
-                                        subLocation.name
-                                      }
-                                    </span>
-
-                                    <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
-                                      Sublocation
-                                    </span>
-                                  </span>
-                                </button>
-                              ),
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ),
-                  )
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--background)] p-6 text-center text-sm text-[var(--text-muted)]">
-                    No locations found.
-                  </div>
-                )}
+                <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
+                  Select a result from the search field
+                  above to move directly to it.
+                </p>
               </div>
             )}
           </div>
@@ -1092,7 +1228,9 @@ function JourneySidebar({
                 <p className="text-xs leading-5 text-[var(--text-muted)]">
                   Regional sublocations appear
                   underneath their selected main
-                  location.
+                  location. Filters above can narrow the
+                  visible map without destroying the
+                  parent-child relationship.
                 </p>
               </div>
             </div>
