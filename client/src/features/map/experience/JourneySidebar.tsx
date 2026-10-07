@@ -10,7 +10,10 @@ import {
   Search,
   X,
 } from 'lucide-react'
-import { useMemo } from 'react'
+import {
+  useMemo,
+  useState,
+} from 'react'
 
 import type { Location } from '../../../types/location'
 
@@ -61,9 +64,11 @@ interface JourneySidebarProps {
   onTabChange: (tab: JourneySidebarTab) => void
   onToggleRoute: () => void
   onReset: () => void
+
   onFiltersChange: (
     filters: LocationFiltersState,
   ) => void
+
   onResetFilters: () => void
   onCloseMobile?: () => void
 
@@ -99,11 +104,25 @@ function JourneySidebar({
   onCloseMobile,
   className = '',
 }: JourneySidebarProps) {
+  const [
+    filtersOpen,
+    setFiltersOpen,
+  ] = useState(false)
+
+  /*
+   * Main locations.
+   */
   const mainLocations = useMemo(
-    () => getMainLocations(locations),
+    () =>
+      getMainLocations(
+        locations,
+      ),
     [locations],
   )
 
+  /*
+   * Narrative journey order.
+   */
   const journeyLocations = useMemo(
     () =>
       [...mainLocations].sort(
@@ -115,7 +134,8 @@ function JourneySidebar({
   )
 
   /*
-   * Determine which main location should be expanded.
+   * Determine which main location should
+   * currently be expanded.
    *
    * Main selected:
    *   → expand itself
@@ -123,95 +143,120 @@ function JourneySidebar({
    * Sublocation selected:
    *   → expand its parent
    */
-  const expandedMainLocationId = useMemo(() => {
-    if (!selectedLocation) {
+  const expandedMainLocationId =
+    useMemo(() => {
+      if (!selectedLocation) {
+        return null
+      }
+
+      if (
+        selectedLocation.type ===
+        'main'
+      ) {
+        return selectedLocation.id
+      }
+
+      if (
+        selectedLocation.type ===
+        'sub'
+      ) {
+        const parent =
+          getParentLocation(
+            locations,
+            selectedLocation,
+          )
+
+        return parent?.id ?? null
+      }
+
       return null
-    }
-
-    if (selectedLocation.type === 'main') {
-      return selectedLocation.id
-    }
-
-    if (selectedLocation.type === 'sub') {
-      const parent = getParentLocation(
-        locations,
-        selectedLocation,
-      )
-
-      return parent?.id ?? null
-    }
-
-    return null
-  }, [locations, selectedLocation])
+    }, [
+      locations,
+      selectedLocation,
+    ])
 
   /*
    * Hierarchical search results.
    *
-   * Main location
-   *   ├── matching sublocation
-   *   └── matching sublocation
+   * Example:
+   *
+   * Chitrakoot
+   *   ├── Ramghat
+   *   └── Gupt Godavari
    */
-  const searchGroups = useMemo<SearchGroup[]>(
-    () => {
-      const query = searchQuery
-        .trim()
-        .toLowerCase()
+  const searchGroups =
+    useMemo<SearchGroup[]>(
+      () => {
+        const query =
+          searchQuery
+            .trim()
+            .toLowerCase()
 
-      if (!query) {
-        return []
-      }
+        if (!query) {
+          return []
+        }
 
-      const resultIds = new Set(
-        searchResults.map(
-          (location) => location.id,
-        ),
-      )
-
-      return mainLocations
-        .map((mainLocation) => {
-          const mainMatches =
-            resultIds.has(mainLocation.id)
-
-          const subLocations = getSubLocations(
-            locations,
-            mainLocation.id,
+        const resultIds =
+          new Set(
+            searchResults.map(
+              (location) =>
+                location.id,
+            ),
           )
 
-          const matchingSubLocations =
-            mainMatches
-              ? subLocations
-              : subLocations.filter(
-                  (location) =>
-                    resultIds.has(location.id),
+        return mainLocations
+          .map(
+            (mainLocation) => {
+              const mainMatches =
+                resultIds.has(
+                  mainLocation.id,
                 )
 
-          if (
-            !mainMatches &&
-            matchingSubLocations.length === 0
-          ) {
-            return null
-          }
+              const subLocations =
+                getSubLocations(
+                  locations,
+                  mainLocation.id,
+                )
 
-          return {
-            mainLocation,
-            subLocations:
-              matchingSubLocations,
-          }
-        })
-        .filter(
-          (
-            group,
-          ): group is SearchGroup =>
-            group !== null,
-        )
-    },
-    [
-      locations,
-      mainLocations,
-      searchQuery,
-      searchResults,
-    ],
-  )
+              const matchingSubLocations =
+                mainMatches
+                  ? subLocations
+                  : subLocations.filter(
+                      (location) =>
+                        resultIds.has(
+                          location.id,
+                        ),
+                    )
+
+              if (
+                !mainMatches &&
+                matchingSubLocations.length ===
+                  0
+              ) {
+                return null
+              }
+
+              return {
+                mainLocation,
+                subLocations:
+                  matchingSubLocations,
+              }
+            },
+          )
+          .filter(
+            (
+              group,
+            ): group is SearchGroup =>
+              group !== null,
+          )
+      },
+      [
+        locations,
+        mainLocations,
+        searchQuery,
+        searchResults,
+      ],
+    )
 
   const tabs = [
     {
@@ -241,6 +286,13 @@ function JourneySidebar({
     filters.region !== 'all' ||
     filters.state !== 'all'
 
+  const activeFilterCount =
+    [
+      filters.type !== 'all',
+      filters.region !== 'all',
+      filters.state !== 'all',
+    ].filter(Boolean).length
+
   const updateFilter = <
     K extends keyof LocationFiltersState,
   >(
@@ -269,7 +321,9 @@ function JourneySidebar({
         ${className}
       `}
     >
-      {/* Header */}
+      {/* ==================================================
+          HEADER
+      ================================================== */}
       <div
         className="
           flex
@@ -308,7 +362,9 @@ function JourneySidebar({
         {onCloseMobile && (
           <button
             type="button"
-            onClick={onCloseMobile}
+            onClick={
+              onCloseMobile
+            }
             aria-label="Close menu"
             className="
               flex
@@ -333,7 +389,9 @@ function JourneySidebar({
         )}
       </div>
 
-      {/* Search */}
+      {/* ==================================================
+          SEARCH
+      ================================================== */}
       {showSearch && (
         <div
           className="
@@ -361,7 +419,9 @@ function JourneySidebar({
             <input
               type="search"
               value={searchQuery}
-              onFocus={onSearchFocus}
+              onFocus={
+                onSearchFocus
+              }
               onChange={(event) =>
                 onSearchChange(
                   event.target.value,
@@ -410,123 +470,145 @@ function JourneySidebar({
                 "
               >
                 {searchGroups.length > 0 ? (
-                  searchGroups.map((group) => (
-                    <div
-                      key={
-                        group.mainLocation.id
-                      }
-                      className="
-                        border-b
-                        border-[var(--border)]
-                        last:border-b-0
-                      "
-                    >
-                      {/* Main result */}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onSelectLocation(
-                            group.mainLocation,
-                          )
+                  searchGroups.map(
+                    (group) => (
+                      <div
+                        key={
+                          group
+                            .mainLocation
+                            .id
                         }
                         className="
-                          flex
-                          w-full
-                          items-start
-                          gap-3
-                          px-4
-                          py-3
-                          text-left
-                          transition
-                          hover:bg-[var(--surface-muted)]
+                          border-b
+                          border-[var(--border)]
+                          last:border-b-0
                         "
                       >
-                        <span
+                        {/* Main search result */}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onSelectLocation(
+                              group.mainLocation,
+                            )
+                          }
                           className="
-                            mt-1.5
-                            h-2.5
-                            w-2.5
-                            shrink-0
-                            rounded-full
-                            bg-[#e9c27b]
-                          "
-                        />
-
-                        <span>
-                          <span className="block text-sm font-semibold">
-                            {group.mainLocation.name}
-                          </span>
-
-                          <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
-                            Main location
-                            {' · '}
-                            {group.mainLocation.region}
-                          </span>
-                        </span>
-                      </button>
-
-                      {/* Sublocations */}
-                      {group.subLocations.length >
-                        0 && (
-                        <div
-                          className="
-                            border-t
-                            border-[var(--border)]
-                            bg-[var(--background)]/60
+                            flex
+                            w-full
+                            items-start
+                            gap-3
+                            px-4
+                            py-3
+                            text-left
+                            transition
+                            hover:bg-[var(--surface-muted)]
                           "
                         >
-                          {group.subLocations.map(
-                            (subLocation) => (
-                              <button
-                                key={subLocation.id}
-                                type="button"
-                                onClick={() =>
-                                  onSelectLocation(
-                                    subLocation,
-                                  )
-                                }
-                                className="
-                                  flex
-                                  w-full
-                                  items-start
-                                  gap-3
-                                  border-l
-                                  border-[var(--border)]
-                                  px-4
-                                  py-2.5
-                                  pl-8
-                                  text-left
-                                  transition
-                                  hover:bg-[var(--surface-muted)]
-                                "
-                              >
-                                <span
+                          <span
+                            className="
+                              mt-1.5
+                              h-2.5
+                              w-2.5
+                              shrink-0
+                              rounded-full
+                              bg-[#e9c27b]
+                              ring-2
+                              ring-[#c49345]/20
+                            "
+                          />
+
+                          <span className="min-w-0">
+                            <span className="block text-sm font-semibold">
+                              {
+                                group
+                                  .mainLocation
+                                  .name
+                              }
+                            </span>
+
+                            <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
+                              Main location
+                              {' · '}
+                              {
+                                group
+                                  .mainLocation
+                                  .region
+                              }
+                            </span>
+                          </span>
+                        </button>
+
+                        {/* Matching sublocations */}
+                        {group
+                          .subLocations
+                          .length > 0 && (
+                          <div
+                            className="
+                              border-t
+                              border-[var(--border)]
+                              bg-[var(--background)]/60
+                              py-1
+                            "
+                          >
+                            {group.subLocations.map(
+                              (
+                                subLocation,
+                              ) => (
+                                <button
+                                  key={
+                                    subLocation.id
+                                  }
+                                  type="button"
+                                  onClick={() =>
+                                    onSelectLocation(
+                                      subLocation,
+                                    )
+                                  }
                                   className="
-                                    mt-1.5
-                                    h-2
-                                    w-2
-                                    shrink-0
-                                    rounded-full
-                                    bg-[#c46b30]
+                                    flex
+                                    w-full
+                                    items-start
+                                    gap-3
+                                    border-l
+                                    border-[var(--border)]
+                                    px-4
+                                    py-2.5
+                                    pl-8
+                                    text-left
+                                    transition
+                                    hover:bg-[var(--surface-muted)]
                                   "
-                                />
+                                >
+                                  <span
+                                    className="
+                                      mt-1.5
+                                      h-2
+                                      w-2
+                                      shrink-0
+                                      rounded-full
+                                      bg-[#c46b30]
+                                    "
+                                  />
 
-                                <span>
-                                  <span className="block text-sm font-medium">
-                                    {subLocation.name}
-                                  </span>
+                                  <span className="min-w-0">
+                                    <span className="block text-sm font-medium">
+                                      {
+                                        subLocation.name
+                                      }
+                                    </span>
 
-                                  <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
-                                    Sublocation
+                                    <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
+                                      Sublocation
+                                    </span>
                                   </span>
-                                </span>
-                              </button>
-                            ),
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))
+                                </button>
+                              ),
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ),
+                  )
                 ) : (
                   <div className="p-4 text-sm text-[var(--text-muted)]">
                     No locations found.
@@ -537,18 +619,43 @@ function JourneySidebar({
         </div>
       )}
 
-      {/* Filters */}
+      {/* ==================================================
+          COMPACT FILTER CONTROL
+      ================================================== */}
       {showSearch && (
         <div
           className="
             border-b
             border-[var(--border)]
-            px-4
-            py-4
+            p-3
           "
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() =>
+              setFiltersOpen(
+                (current) =>
+                  !current,
+              )
+            }
+            aria-expanded={filtersOpen}
+            className="
+              flex
+              w-full
+              items-center
+              justify-between
+              rounded-xl
+              border
+              border-[var(--border)]
+              bg-[var(--background)]
+              px-4
+              py-3
+              text-left
+              transition
+              hover:bg-[var(--surface-muted)]
+            "
+          >
+            <span className="flex items-center gap-2">
               <Filter
                 className="
                   h-4
@@ -558,186 +665,266 @@ function JourneySidebar({
                 aria-hidden="true"
               />
 
-              <p
+              <span className="text-xs font-medium">
+                Filters
+              </span>
+
+              {hasActiveFilters && (
+                <span
+                  className="
+                    rounded-full
+                    bg-[var(--primary)]
+                    px-2
+                    py-0.5
+                    text-[9px]
+                    font-semibold
+                    text-white
+                  "
+                >
+                  {activeFilterCount}
+                </span>
+              )}
+            </span>
+
+            <ChevronDown
+              className={`
+                h-4
+                w-4
+                text-[var(--text-muted)]
+                transition-transform
+                ${
+                  filtersOpen
+                    ? 'rotate-180'
+                    : ''
+                }
+              `}
+              aria-hidden="true"
+            />
+          </button>
+
+          {/* Expanded filters */}
+          {filtersOpen && (
+            <div
+              className="
+                mt-3
+                rounded-2xl
+                border
+                border-[var(--border)]
+                bg-[var(--background)]
+                p-3
+              "
+            >
+              {/* Location type */}
+              <div>
+                <p
+                  className="
+                    mb-2
+                    text-[10px]
+                    font-medium
+                    uppercase
+                    tracking-[0.2em]
+                    text-[var(--text-muted)]
+                  "
+                >
+                  Location type
+                </p>
+
+                <div
+                  className="
+                    flex
+                    rounded-xl
+                    border
+                    border-[var(--border)]
+                    bg-[var(--surface)]
+                    p-1
+                  "
+                >
+                  {(
+                    [
+                      ['all', 'All'],
+                      ['main', 'Main'],
+                      ['sub', 'Sub'],
+                    ] as [
+                      LocationTypeFilter,
+                      string,
+                    ][]
+                  ).map(
+                    ([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() =>
+                          updateFilter(
+                            'type',
+                            value,
+                          )
+                        }
+                        className={`
+                          flex-1
+                          rounded-lg
+                          px-2
+                          py-2
+                          text-[11px]
+                          font-medium
+                          transition
+                          ${
+                            filters.type ===
+                            value
+                              ? 'bg-[var(--primary)] text-white'
+                              : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                          }
+                        `}
+                      >
+                        {label}
+                      </button>
+                    ),
+                  )}
+                </div>
+              </div>
+
+              {/* Region / state */}
+              <div
                 className="
-                  text-[10px]
-                  font-medium
-                  uppercase
-                  tracking-[0.2em]
-                  text-[var(--text-muted)]
+                  mt-3
+                  grid
+                  grid-cols-2
+                  gap-2
                 "
               >
-                Filters
-              </p>
-            </div>
+                <select
+                  value={
+                    filters.region
+                  }
+                  onChange={(event) =>
+                    updateFilter(
+                      'region',
+                      event.target
+                        .value,
+                    )
+                  }
+                  aria-label="Filter by region"
+                  className="
+                    h-10
+                    min-w-0
+                    rounded-xl
+                    border
+                    border-[var(--border)]
+                    bg-[var(--surface)]
+                    px-3
+                    text-xs
+                    text-[var(--text)]
+                    outline-none
+                    focus:border-[var(--primary)]
+                  "
+                >
+                  <option value="all">
+                    All regions
+                  </option>
 
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={onResetFilters}
+                  {filterRegions.map(
+                    (region) => (
+                      <option
+                        key={region}
+                        value={region}
+                      >
+                        {region}
+                      </option>
+                    ),
+                  )}
+                </select>
+
+                <select
+                  value={
+                    filters.state
+                  }
+                  onChange={(event) =>
+                    updateFilter(
+                      'state',
+                      event.target
+                        .value,
+                    )
+                  }
+                  aria-label="Filter by state"
+                  className="
+                    h-10
+                    min-w-0
+                    rounded-xl
+                    border
+                    border-[var(--border)]
+                    bg-[var(--surface)]
+                    px-3
+                    text-xs
+                    text-[var(--text)]
+                    outline-none
+                    focus:border-[var(--primary)]
+                  "
+                >
+                  <option value="all">
+                    All states
+                  </option>
+
+                  {filterStates.map(
+                    (state) => (
+                      <option
+                        key={state}
+                        value={state}
+                      >
+                        {state}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </div>
+
+              {/* Result count + reset */}
+              <div
                 className="
+                  mt-3
                   flex
                   items-center
-                  gap-1.5
-                  text-[11px]
-                  text-[var(--text-muted)]
-                  transition
-                  hover:text-[var(--primary)]
+                  justify-between
                 "
               >
-                <RotateCcw
-                  className="h-3 w-3"
-                  aria-hidden="true"
-                />
+                <p className="text-[11px] text-[var(--text-muted)]">
+                  Showing{' '}
+                  <span className="font-semibold text-[var(--text)]">
+                    {filteredResultCount}
+                  </span>{' '}
+                  locations
+                </p>
 
-                Reset
-              </button>
-            )}
-          </div>
-
-          {/* Type filter */}
-          <div
-            className="
-              mt-3
-              flex
-              rounded-xl
-              border
-              border-[var(--border)]
-              bg-[var(--background)]
-              p-1
-            "
-          >
-            {(
-              [
-                ['all', 'All'],
-                ['main', 'Main'],
-                ['sub', 'Sub'],
-              ] as [
-                LocationTypeFilter,
-                string,
-              ][]
-            ).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() =>
-                  updateFilter(
-                    'type',
-                    value,
-                  )
-                }
-                className={`
-                  flex-1
-                  rounded-lg
-                  px-2
-                  py-2
-                  text-[11px]
-                  font-medium
-                  transition
-                  ${
-                    filters.type === value
-                      ? 'bg-[var(--primary)] text-white'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-                  }
-                `}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {/* Region/state filters */}
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <select
-              value={filters.region}
-              onChange={(event) =>
-                updateFilter(
-                  'region',
-                  event.target.value,
-                )
-              }
-              aria-label="Filter by region"
-              className="
-                h-10
-                min-w-0
-                rounded-xl
-                border
-                border-[var(--border)]
-                bg-[var(--background)]
-                px-3
-                text-xs
-                text-[var(--text)]
-                outline-none
-                focus:border-[var(--primary)]
-              "
-            >
-              <option value="all">
-                All regions
-              </option>
-
-              {filterRegions.map(
-                (region) => (
-                  <option
-                    key={region}
-                    value={region}
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={
+                      onResetFilters
+                    }
+                    className="
+                      inline-flex
+                      items-center
+                      gap-1.5
+                      text-[11px]
+                      font-medium
+                      text-[var(--primary)]
+                    "
                   >
-                    {region}
-                  </option>
-                ),
-              )}
-            </select>
+                    <RotateCcw
+                      className="h-3 w-3"
+                      aria-hidden="true"
+                    />
 
-            <select
-              value={filters.state}
-              onChange={(event) =>
-                updateFilter(
-                  'state',
-                  event.target.value,
-                )
-              }
-              aria-label="Filter by state"
-              className="
-                h-10
-                min-w-0
-                rounded-xl
-                border
-                border-[var(--border)]
-                bg-[var(--background)]
-                px-3
-                text-xs
-                text-[var(--text)]
-                outline-none
-                focus:border-[var(--primary)]
-              "
-            >
-              <option value="all">
-                All states
-              </option>
-
-              {filterStates.map(
-                (state) => (
-                  <option
-                    key={state}
-                    value={state}
-                  >
-                    {state}
-                  </option>
-                ),
-              )}
-            </select>
-          </div>
-
-          <p className="mt-3 text-[11px] text-[var(--text-muted)]">
-            Showing{' '}
-            <span className="font-semibold text-[var(--text)]">
-              {filteredResultCount}
-            </span>{' '}
-            locations
-          </p>
+                    Reset
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Tabs */}
+      {/* ==================================================
+          TABS
+      ================================================== */}
       <nav
         className="
           grid
@@ -749,17 +936,23 @@ function JourneySidebar({
       >
         {tabs.map((tab) => {
           const Icon = tab.icon
+
           const isActive =
-            activeTab === tab.id
+            activeTab ===
+            tab.id
 
           return (
             <button
               key={tab.id}
               type="button"
               onClick={() =>
-                onTabChange(tab.id)
+                onTabChange(
+                  tab.id,
+                )
               }
-              aria-pressed={isActive}
+              aria-pressed={
+                isActive
+              }
               className={`
                 flex
                 flex-col
@@ -788,27 +981,77 @@ function JourneySidebar({
         })}
       </nav>
 
-      {/* Sidebar content */}
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {/* Explore */}
-        {activeTab === 'explore' && (
+      {/* ==================================================
+          CONTENT
+      ================================================== */}
+      <div
+        className="
+          min-h-0
+          flex-1
+          overflow-y-auto
+        "
+      >
+        {/* ==================================================
+            EXPLORE
+        ================================================== */}
+        {activeTab ===
+          'explore' && (
           <div className="p-5">
-            <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-[var(--primary)]">
+            <p
+              className="
+                text-[10px]
+                font-medium
+                uppercase
+                tracking-[0.25em]
+                text-[var(--primary)]
+              "
+            >
               Explore
             </p>
 
-            <h2 className="mt-3 text-2xl font-semibold tracking-tight">
+            <h2
+              className="
+                mt-3
+                text-2xl
+                font-semibold
+                tracking-tight
+              "
+            >
               Follow the story across India.
             </h2>
 
-            <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-              Explore major locations, discover
-              regional sublocations, and move through
-              the geographical journey of the Ramayana.
+            <p
+              className="
+                mt-3
+                text-sm
+                leading-6
+                text-[var(--text-muted)]
+              "
+            >
+              Explore major locations,
+              discover regional
+              sublocations, and move
+              through the geographical
+              journey of the Ramayana.
             </p>
 
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--background)] p-4">
+            <div
+              className="
+                mt-6
+                grid
+                grid-cols-2
+                gap-3
+              "
+            >
+              <div
+                className="
+                  rounded-2xl
+                  border
+                  border-[var(--border)]
+                  bg-[var(--background)]
+                  p-4
+                "
+              >
                 <p className="text-2xl font-semibold">
                   {mainLocations.length}
                 </p>
@@ -818,7 +1061,15 @@ function JourneySidebar({
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--background)] p-4">
+              <div
+                className="
+                  rounded-2xl
+                  border
+                  border-[var(--border)]
+                  bg-[var(--background)]
+                  p-4
+                "
+              >
                 <p className="text-2xl font-semibold">
                   {locations.length}
                 </p>
@@ -840,7 +1091,15 @@ function JourneySidebar({
                   p-4
                 "
               >
-                <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--primary)]">
+                <p
+                  className="
+                    text-[10px]
+                    font-medium
+                    uppercase
+                    tracking-[0.2em]
+                    text-[var(--primary)]
+                  "
+                >
                   Currently viewing
                 </p>
 
@@ -891,16 +1150,28 @@ function JourneySidebar({
           </div>
         )}
 
-        {/* Journey */}
-        {activeTab === 'journey' && (
+        {/* ==================================================
+            JOURNEY
+        ================================================== */}
+        {activeTab ===
+          'journey' && (
           <div className="p-4">
             <div className="mb-5 px-1">
-              <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-[var(--primary)]">
+              <p
+                className="
+                  text-[10px]
+                  font-medium
+                  uppercase
+                  tracking-[0.25em]
+                  text-[var(--primary)]
+                "
+              >
                 Journey sequence
               </p>
 
               <h2 className="mt-2 text-xl font-semibold">
-                Move through the major chapters.
+                Move through the major
+                chapters.
               </h2>
             </div>
 
@@ -1006,8 +1277,9 @@ function JourneySidebar({
                         )}
                       </button>
 
-                      {/* Sublocations */}
-                      {subLocations.length > 0 && (
+                      {/* Sublocations directly underneath */}
+                      {subLocations.length >
+                        0 && (
                         <div
                           className="
                             ml-4
@@ -1052,7 +1324,15 @@ function JourneySidebar({
                                     }
                                   `}
                                 >
-                                  <span className="h-2 w-2 shrink-0 rounded-full bg-[#c46b30]" />
+                                  <span
+                                    className="
+                                      h-2
+                                      w-2
+                                      shrink-0
+                                      rounded-full
+                                      bg-[#c46b30]
+                                    "
+                                  />
 
                                   <span className="min-w-0">
                                     <span className="block text-sm font-medium">
@@ -1079,29 +1359,57 @@ function JourneySidebar({
           </div>
         )}
 
-        {/* Locations */}
-        {activeTab === 'locations' && (
+        {/* ==================================================
+            LOCATIONS
+        ================================================== */}
+        {activeTab ===
+          'locations' && (
           <div className="p-4">
             <div className="mb-5 px-1">
-              <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-[var(--primary)]">
+              <p
+                className="
+                  text-[10px]
+                  font-medium
+                  uppercase
+                  tracking-[0.25em]
+                  text-[var(--primary)]
+                "
+              >
                 Find a location
               </p>
 
               <h2 className="mt-2 text-xl font-semibold">
-                Search the Ramayana landscape.
+                Search the Ramayana
+                landscape.
               </h2>
 
               <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
-                Search above or use the filters to narrow
-                down the complete location archive.
+                Search above or use the
+                filters to narrow down the
+                complete location archive.
               </p>
             </div>
 
             {!searchQuery.trim() &&
             !hasActiveFilters ? (
-              <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--background)] p-6 text-center">
+              <div
+                className="
+                  rounded-2xl
+                  border
+                  border-dashed
+                  border-[var(--border)]
+                  bg-[var(--background)]
+                  p-6
+                  text-center
+                "
+              >
                 <Search
-                  className="mx-auto h-6 w-6 text-[var(--primary)]"
+                  className="
+                    mx-auto
+                    h-6
+                    w-6
+                    text-[var(--primary)]
+                  "
                   aria-hidden="true"
                 />
 
@@ -1110,31 +1418,51 @@ function JourneySidebar({
                 </p>
 
                 <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
-                  Search by location, region, state,
-                  or country.
+                  Search by location,
+                  region, state, or country.
                 </p>
               </div>
             ) : (
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--background)] p-4">
+              <div
+                className="
+                  rounded-2xl
+                  border
+                  border-[var(--border)]
+                  bg-[var(--background)]
+                  p-4
+                "
+              >
                 <p className="text-sm font-medium">
-                  {filteredResultCount} locations match
-                  your current search.
+                  {filteredResultCount}{' '}
+                  locations match your
+                  current filters.
                 </p>
 
                 <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
-                  Select a result from the search field
-                  above to move directly to it.
+                  Select a result from the
+                  search field above to move
+                  directly to it.
                 </p>
               </div>
             )}
           </div>
         )}
 
-        {/* Layers */}
+        {/* ==================================================
+            LAYERS
+        ================================================== */}
         {activeTab === 'layers' && (
           <div className="p-4">
             <div className="mb-5 px-1">
-              <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-[var(--primary)]">
+              <p
+                className="
+                  text-[10px]
+                  font-medium
+                  uppercase
+                  tracking-[0.25em]
+                  text-[var(--primary)]
+                "
+              >
                 Map layers
               </p>
 
@@ -1144,10 +1472,15 @@ function JourneySidebar({
             </div>
 
             <div className="space-y-3">
+              {/* Route toggle */}
               <button
                 type="button"
-                onClick={onToggleRoute}
-                aria-pressed={showRoute}
+                onClick={
+                  onToggleRoute
+                }
+                aria-pressed={
+                  showRoute
+                }
                 className="
                   flex
                   w-full
@@ -1174,7 +1507,11 @@ function JourneySidebar({
                     "
                   >
                     <Route
-                      className="h-4 w-4 text-[var(--primary)]"
+                      className="
+                        h-4
+                        w-4
+                        text-[var(--primary)]
+                      "
                       aria-hidden="true"
                     />
                   </span>
@@ -1185,7 +1522,8 @@ function JourneySidebar({
                     </span>
 
                     <span className="mt-1 block text-xs text-[var(--text-muted)]">
-                      Connect major locations
+                      Connect major
+                      locations
                     </span>
                   </span>
                 </span>
@@ -1224,13 +1562,23 @@ function JourneySidebar({
                 </span>
               </button>
 
-              <div className="rounded-2xl border border-dashed border-[var(--border)] p-4">
+              <div
+                className="
+                  rounded-2xl
+                  border
+                  border-dashed
+                  border-[var(--border)]
+                  p-4
+                "
+              >
                 <p className="text-xs leading-5 text-[var(--text-muted)]">
-                  Regional sublocations appear
-                  underneath their selected main
-                  location. Filters above can narrow the
-                  visible map without destroying the
-                  parent-child relationship.
+                  Regional sublocations
+                  appear underneath their
+                  selected main location.
+                  Filters narrow the visible
+                  map without removing the
+                  parent-child relationship
+                  from the journey list.
                 </p>
               </div>
             </div>
@@ -1238,11 +1586,26 @@ function JourneySidebar({
         )}
       </div>
 
-      {/* Footer */}
-      <div className="border-t border-[var(--border)] p-4">
+      {/* ==================================================
+          FOOTER
+      ================================================== */}
+      <div
+        className="
+          border-t
+          border-[var(--border)]
+          p-4
+        "
+      >
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--text-muted)]">
+            <p
+              className="
+                text-[10px]
+                uppercase
+                tracking-[0.2em]
+                text-[var(--text-muted)]
+              "
+            >
               Map status
             </p>
 
@@ -1251,7 +1614,17 @@ function JourneySidebar({
             </p>
           </div>
 
-          <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1.5 text-[10px] font-medium text-[var(--primary)]">
+          <span
+            className="
+              rounded-full
+              bg-[var(--accent-soft)]
+              px-3
+              py-1.5
+              text-[10px]
+              font-medium
+              text-[var(--primary)]
+            "
+          >
             Beta
           </span>
         </div>
